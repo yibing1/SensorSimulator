@@ -17,6 +17,7 @@ public class SensorCmdHandler
     private SerialPort      port;      // 串口号
     private String          fileName;  // 文件名称
     private int             fileType;  // 文件种类，2进制或非2进制
+    private long            interval;  // 设置间隔
 
 
     public SensorCmdHandler(String cmd)
@@ -37,13 +38,14 @@ public class SensorCmdHandler
      * @param fileType
      *            文件种类
      */
-    public void iniHandler(Simulation_Task task, SerialPort port, String fileName, int fileType)
+    public void iniHandler(Simulation_Task task, SerialPort port, String fileName, int fileType, long interval)
     {
         this.task = task;
         this.sensorName = task.getsensorName();
         this.port = port;
         this.fileName = fileName;
         this.fileType = fileType;
+        this.interval = interval;
     }
 
 
@@ -63,6 +65,9 @@ public class SensorCmdHandler
             {
                 case "br":
                     task = changeRate(cmds[1]);
+                    break;
+                case "setInterval":
+                    setInterval(cmds[1]);
                     break;
                 default:
                     SerialPortManager.sendToPort(port, ("Can't recognize this command\n").getBytes());
@@ -106,6 +111,27 @@ public class SensorCmdHandler
 
 
     /**
+     * 设置采样间隔
+     * 
+     * @param interval采样间隔
+     */
+    private void setInterval(String interval)
+    {
+        this.interval = 100 * Integer.parseInt(interval);
+        task.setInterval(this.interval);
+    }
+
+    /**
+     * 获取采样间隔
+     * @return采样间隔
+     */
+    public long getInterval()
+    {
+        return interval;
+    }
+
+
+    /**
      * 打开模拟器（打开模拟器数据发送模块） 该方法会返回一个模拟器数据发送模块，方便主程序对当前模块的更新
      * 
      * @return 模拟器数据发送模块
@@ -114,7 +140,7 @@ public class SensorCmdHandler
     {
         if (!task.getRunningState())
         {
-            task = new Simulation_Task(sensorName, port, fileName, fileType);
+            task = new Simulation_Task(sensorName, port, fileName, fileType, interval);
             task.setRunningState(true);
             Thread thread = new Thread(task);
             thread.start();
@@ -128,9 +154,10 @@ public class SensorCmdHandler
 
 
     /**
-             * 更改模特率。先停止数据传输模块，对该模拟器波特率进行更改，更改后再重启数据发送模块
+     * 更改模特率。先停止数据传输模块，对该模拟器波特率进行更改，更改后再重启数据发送模块
      * 
      * @param rate
+     *            波特率
      * @return
      */
     private Simulation_Task changeRate(String rate)
@@ -140,19 +167,22 @@ public class SensorCmdHandler
             if (!task.getRunningState())
             {
                 SerialPortManager.sendToPort(port, ("\n").getBytes());
-                System.out.println("before change " + port.getBaudRate());
+
+                System.out.println("BaudRate before: " + port.getBaudRate());
                 SerialPortManager.changeBuadeRate(Integer.parseInt(rate), port);
-                System.out.println("after change " + port.getBaudRate());
+                System.out.println("BaudRate after: " + port.getBaudRate());
             }
             else
             {
                 task.stop();
                 SerialPortManager.sendToPort(port, ("\n").getBytes());
-                System.out.println("before change " + port.getBaudRate());
+
+                System.out.println("BaudRate before: " + port.getBaudRate());
                 SerialPortManager.changeBuadeRate(Integer.parseInt(rate), port);
-                System.out.println("after change " + port.getBaudRate());
+                System.out.println("BaudRate after: " + port.getBaudRate());
+
                 Thread.sleep(1000);
-                task = new Simulation_Task(sensorName, port, fileName, fileType);
+                task = new Simulation_Task(sensorName, port, fileName, fileType, interval);
                 task.setRunningState(true);
                 Thread thread = new Thread(task);
                 thread.start();
@@ -164,7 +194,7 @@ public class SensorCmdHandler
         }
         catch (UnsupportedCommOperationException e)
         {
-            
+
             System.err.println("change baudrate error");
         }
         catch (InterruptedException e)

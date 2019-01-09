@@ -177,37 +177,26 @@ public class SerialPortManager
     public static byte[] readFromPort(SerialPort serialPort)
     {
         InputStream in = null;
-        byte[] bytes = null;
-        try
-        {
+        byte[] bytes = {};
+        try {
             in = serialPort.getInputStream();
-            // 获取buffer里的数据长度
-            int bufflenth = in.available();
-            while (bufflenth != 0)
-            {
-                // 初始化byte数组为buffer中数据的长度
-                bytes = new byte[bufflenth];
-                in.read(bytes);
-                bufflenth = in.available();
+            //一次读取一个byte
+            byte[] readBuffer = new byte[1];
+            int bytesNum = in.read(readBuffer);
+            while (bytesNum > 0) {
+                bytes = ArrayUtils.concat(bytes, readBuffer);
+                bytesNum = in.read(readBuffer);
             }
-        }
-        catch (IOException e)
-        {
-            System.err.println("Fail to read data from port");
-        }
-        finally
-        {
-            try
-            {
-                if (in != null)
-                {
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (in != null) {
                     in.close();
                     in = null;
                 }
-            }
-            catch (IOException e)
-            {
-                System.err.println("Input Stream has been closed");
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
         return bytes;

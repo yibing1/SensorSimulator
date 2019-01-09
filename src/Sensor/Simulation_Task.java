@@ -19,7 +19,7 @@ public class Simulation_Task implements Runnable
     private volatile boolean running = false;// 判断是否要停止发送
     private String           fileName;      // 文件名字
     private int              fileType;      // 文件种类，1为非2进制文件，2为2进制文件
-
+    private volatile long interval;
 
     /**
      * Constructor 用于初始化Simulation_Task
@@ -33,12 +33,13 @@ public class Simulation_Task implements Runnable
      * @param fileType
      *            文件种类
      */
-    public Simulation_Task(String sensorName, SerialPort port, String fileName, int fileType)
+    public Simulation_Task(String sensorName, SerialPort port, String fileName, int fileType,long interval)
     {
         this.sensorName = sensorName;
         this.port = port;
         this.fileName = fileName;
         this.fileType = fileType;
+        this.interval=interval;
     }
 
 
@@ -81,7 +82,7 @@ public class Simulation_Task implements Runnable
                 String rec_data = ">" + scan.readLine() + "\n";
                 // 发送数据至串口
                 SerialPortManager.sendToPort(port, rec_data.getBytes());
-                Thread.sleep(300);
+                Thread.sleep(interval);
                 // 当该文件被读取至底时，重置读取指针到文件初始位置
                 if (scan.getFilePointer() == endpos)
                 {
@@ -121,7 +122,7 @@ public class Simulation_Task implements Runnable
                 // 读取2进制文件，以16进制发送
                 String rec_data = Integer.toHexString(scan.readByte() & 0xff);
                 SerialPortManager.sendToPort(port, rec_data.getBytes());
-                Thread.sleep(300);
+                Thread.sleep(interval);
                 if (scan.getFilePointer() == endpos)
                 {
                     scan.seek(0);
@@ -143,20 +144,36 @@ public class Simulation_Task implements Runnable
         }
     }
 
-
     /**
-     * 获取当前数据发送模块状态，是否在运行
+             * 设置采样间隔
+     * @param interval 采样间隔
      * 
      * @return true 如果在运行中，否则为false
+     */
+    public void setInterval(long interval)
+    {
+        System.out.println("Interval before(ms): "+this.interval);
+        this.interval=interval;
+        System.out.println("Interval after(ms): "+this.interval);
+    }
+    /**
+     * 获取采样间隔
+     * @return 采样间隔
+     */
+    public long getInterval() {
+       return this.interval;
+    }
+    /**
+             * 获取运行状态
+     * @return 运行状态
      */
     public boolean getRunningState()
     {
         return this.running;
     }
     /**
-     * 获取当前数据发送模块状态，是否在运行
-     * 
-     * @return true 如果在运行中，否则为false
+             * 设置运行状态
+     * @param run 设置运行状态
      */
     public void setRunningState(boolean run)
     {
